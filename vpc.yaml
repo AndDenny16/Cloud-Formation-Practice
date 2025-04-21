@@ -1,0 +1,111 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Basic VPC
+
+Resources: 
+
+  #VPC
+  MyVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsSupport: true
+
+  #Gateway
+  MyGateway:
+    Type: AWS::EC2::InternetGateway
+  AttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref MyVPC
+      InternetGatewayId: !Ref MyGateway
+
+ #NAT and Elastic IP
+
+  NATEIP:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+
+  NatGateway:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt NATEIP.AllocationId
+      SubnetId: !Ref Subnet1 
+
+ #Route Tablesf 
+
+ #Public
+  MyRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref MyVPC
+
+  RouteName:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref MyRouteTable
+      DestinationCidrBlock: "0.0.0.0/0"
+      GatewayId: !Ref MyGateway
+
+  #Private
+
+  PrivateRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref MyVPC
+
+
+  PrivateRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable
+      DestinationCidrBlock: "0.0.0.0/0"
+      NatGatewayId: !Ref NatGateway
+
+
+  PublicAssoc:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref Subnet1
+      RouteTableId: !Ref MyRouteTable
+
+
+  PrivateAssoc: 
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref Subnet2
+      RouteTableId: !Ref PrivateRouteTable
+
+
+  Subnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: us-east-1a
+      VpcId: !Ref MyVPC
+      CidrBlock: 10.0.1.0/24
+      
+  Subnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: us-east-1b
+      VpcId: !Ref MyVPC
+      CidrBlock: 10.0.2.0/24
+
+
+
+Outputs:
+  VpcId:
+    Description: "Id of VPC"
+    Value: !Ref MyVPC
+
+  InternetGatewayId:
+    Description: "ID of created Internet Gateway"
+    Value: !Ref MyGateway
+  
+  Subnet1Id:
+    Description: "The ID of Subnet 1"
+    Value: !Ref Subnet1
+
+  Subnet2Id:
+    Description: "The ID of Subnet 1"
+    Value: !Ref Subnet1
